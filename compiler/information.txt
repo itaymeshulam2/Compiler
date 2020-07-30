@@ -1,0 +1,13 @@
+Students ids:
+1. 205613516
+2. 308207604
+
+Students names:
+1. Itay Meshulam
+2. Yehonatan Arbel
+
+Operating system:
+Windows10 - 64Bit
+
+Development enviroment:
+Visual Studio 17

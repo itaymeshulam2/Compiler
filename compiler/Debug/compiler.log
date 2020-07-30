@@ -1,0 +1,10 @@
+﻿  Parse.c
+c:\users\itay\source\repos\compiler\compiler\parse.c(334): warning C4129: 'V': unrecognized character escape sequence
+c:\users\itay\source\repos\compiler\compiler\parse.c(1540): warning C4473: 'fprintf' : not enough arguments passed for format string
+  c:\users\itay\source\repos\compiler\compiler\parse.c(1540): note: placeholders and their parameters expect 2 variadic arguments, but 1 were provided
+  c:\users\itay\source\repos\compiler\compiler\parse.c(1540): note: the missing variadic argument 2 is required by format string '%s'
+  win.lex.yy.c
+  Generating Code...
+c:\users\itay\source\repos\compiler\compiler\parse.c(1536): warning C4715: 'isExistsfunc': not all control paths return a value
+c:\users\itay\source\repos\compiler\compiler\parse.c(1550): warning C4715: 'funcParam': not all control paths return a value
+  compiler.vcxproj -> C:\Users\Itay\source\repos\compiler\Debug\compiler.exe

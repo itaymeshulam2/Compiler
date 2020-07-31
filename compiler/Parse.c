@@ -15,6 +15,7 @@ Table tempTable;
 Table tempTableVar;
 Params tempParams;
 
+int parse_var = 0;
 int lastFunc = 0;
 int numPrams = 0;
 int numberVar = 0;
@@ -32,6 +33,11 @@ int flagPlus = 0;
 int flagMulti = 0;
 int lastArr = -1;
 int lastParamArr = -1;
+int callfunc = -1;
+int *callarr;
+int callSize = 0;
+int parse_call = 0;
+int typeLastVar = - 1;
 
 
 
@@ -109,7 +115,7 @@ void parse_COMP_STMT()
 void parse_STMT()
 {
 	eTOKENS Follow[] = { TOKEN_SEMICOLON,TOKEN_CURLY_BRACES_RIGHT };
-	int varOrFunc;
+	int varOrFunc = 0;
 
 	t = next_token();
 
@@ -167,12 +173,15 @@ void parse_STMT()
 void parse_CALL()
 {
 	eTOKENS Follow[] = { TOKEN_SEMICOLON,TOKEN_PLUS,TOKEN_MULTI,TOKEN_CURLY_BRACES_RIGHT,TOKEN_COMMA,TOKEN_PARENTHESES_RIGHT,TOKEN_BRACKETS_RIGHT,TOKEN_EQUAL,TOKEN_SMALLER,TOKEN_BIDDER,TOKEN_UNEQUAL,TOKEN_SMALLER_EQUAL,TOKEN_BIDDER_EQUAL};
-
+	int temp = -1;
+	parse_call = 1;
+	
 	t = next_token();
 
 	switch (t->kind) {
 
 	case TOKEN_ID:
+		findcallfunc(t->lexeme);
 		if (legalNumberLeft != -1)
 		{
 			legalNumberRight = isExistsVar(t->lexeme);
@@ -182,14 +191,23 @@ void parse_CALL()
 			
 			legalNumberLeft = legalNumberRight = -1;
 		}
-		if (isExistsfunc(t->lexeme) == 0)
-			fprintf(outputsemant, "Line %d : \"%s\" not func\n", number_line, t->lexeme);
+		temp = isExistsfunc(t->lexeme);
+		if (temp == 0)
+			fprintf(outputsemant, "Line %d : \"%s\" is not func\n", number_line, t->lexeme);
+		else if (temp == -1)
+		{
+			fprintf(outputsemant, "Line %d : \"%s\" the type of the expression is undefined\n", number_line, t->lexeme);
+		}
+		else
+			arrcall();
 
 		fprintf(output, "Line %d : CALL -> id\n", number_line);
+		
 		if(match(TOKEN_PARENTHESES_LEFT))
 			fprintf(output, "Line %d : CALL -> (\n", number_line);
 		else
 			fprintf(output, "Line %d :  missing (\n", number_line);
+		
 		fprintf(output, "Line %d : CALL -> ARGS\n", number_line);
 		parse_ARGS();
 		if(match(TOKEN_PARENTHESES_RIGHT))
@@ -202,10 +220,13 @@ void parse_CALL()
 		back_token();
 		Error_Recoverry(Follow, 13);
 	}
+	checkarrcall();
+	parse_call = 0;
+	callSize = 0;
+	free(callarr);
 }
 void parse_ARGS()
 {
-
 	t = next_token();
 
 	switch (t->kind) {
@@ -272,7 +293,7 @@ void parse_ARGS_LIST_TAG()
 void parse_VAR(int temp)
 {
 	eTOKENS Follow[] = { TOKEN_ASSIGNMENT,TOKEN_SEMICOLON,TOKEN_PLUS,TOKEN_MULTI,TOKEN_CURLY_BRACES_RIGHT,TOKEN_COMMA,TOKEN_PARENTHESES_RIGHT,TOKEN_BRACKETS_RIGHT,TOKEN_EQUAL,TOKEN_SMALLER,TOKEN_BIDDER,TOKEN_UNEQUAL,TOKEN_SMALLER_EQUAL,TOKEN_BIDDER_EQUAL };
-
+	parse_var = 1;
 	t = next_token();
 
 	switch (t->kind) {
@@ -286,15 +307,14 @@ void parse_VAR(int temp)
 			
 			if (returnNumber == -1 && legalNumberRight == 0 /*float*/ ) // return number
 				returnNumber = 0; // float
-			
 
 			if (legalNumberLeft == 1 && legalNumberRight == 0 )
 			{
 				fprintf(outputsemant, "Line %d : \"%s\" is float and the type of the expression is int\n", number_line, t->lexeme);
 			}
 		}
-			
-	
+		if (parse_call == 1)
+			matchBetweendecTocallid();
 		fprintf(output, "Line %d : VAR -> id\n", number_line);
 		fprintf(output, "Line %d : VAR -> VAR_TAG\n", number_line);
 		parse_VAR_TAG(t->lexeme);
@@ -304,6 +324,7 @@ void parse_VAR(int temp)
 		back_token();
 		Error_Recoverry(Follow, 14);
 	}
+	parse_var = 0;
 }
 void parse_VAR_TAG(char *id)
 {
@@ -325,16 +346,17 @@ void parse_VAR_TAG(char *id)
 			if (lastArr != lastFunc && lastArr != -1)
 			{
 				if ((numberOfcell + 1) < table[lastArr].sizelist)
-						fprintf(outputsemant, "Line %d :חריגה מגדול המעערך\nVar_TGA", number_line);
+						fprintf(outputsemant, "Exceeding the size of the array in line %d\n", number_line);
 
 			}
 			else if (lastArr == lastFunc)
 			{
 				if ((numberOfcell + 1) < table[lastFunc].param[lastParamArr].sizelist)
-						fprintf(outputsemant, "Line %d :חריגה מגדול המעערך\Var_TGAn", number_line);
+						fprintf(outputsemant, "Exceeding the size of the array in line %d\n", number_line);
 	
 			}
 			numberOfcell = 0;
+			idArr = 0;
 		}
 	}
 	else
@@ -342,6 +364,7 @@ void parse_VAR_TAG(char *id)
 		if (idArr == 1)
 		{
 			fprintf(outputsemant, "Line %d : \"%s\" assignment to array\n", number_line, id);
+			idArr = 0;
 		}
 		fprintf(output, "Line %d : VAR_TAG -> epsilon\n", number_line);
 		back_token();
@@ -374,11 +397,6 @@ void parse_EXPR_LIST_TAG()
 }
 void parse_RETURN_STMT()
 {
-	//for (int i = 0; i < table[1].sizelist; i++)
-	//{
-	//	fprintf(output, "Line: %d : RETURN_STMT -> return\n", table[1].list[i]);
-
-	//}
 	eTOKENS Follow[] = { TOKEN_SEMICOLON,TOKEN_CURLY_BRACES_RIGHT };
 	returnNumber = -1;
 	table[lastFunc].returnParam = 0;
@@ -525,7 +543,6 @@ void parse_FACTOR()
 			back_token();
 			back_token();
 			parse_VAR(0);
-		
 		}
 		break;
 	case TOKEN_INT_NUMBER:
@@ -552,7 +569,10 @@ void parse_FACTOR()
 		{
 			tempintNumber = intNumber(t->lexeme);
 		}
-		
+		if (parse_call == 1 && parse_var == 0)
+		{
+			matchBetweendecTocallNumber("int");
+		}
 		fprintf(output, "Line %d : FACTOR -> int_number\n", number_line);
 		break;
 	case TOKEN_FLOAT_NUMBER:
@@ -569,7 +589,10 @@ void parse_FACTOR()
 
 		if (idArr == 1)
 			fprintf(outputsemant, "Line %d :float number cannot be an array size\n", number_line);
-		
+		if (parse_call == 1 && parse_var == 0)
+		{
+			matchBetweendecTocallNumber("float");
+		}
 		fprintf(output, "Line %d : FACTOR -> float_number\n", number_line);
 		break;
 	case TOKEN_PARENTHESES_LEFT:
@@ -744,14 +767,12 @@ void parse_FUNC_PREDEFS_TAG()
 		break;
 	}
 	back_token();
-
 }
 void parse_FUNC_PROTOTYPE()
 {
 	eTOKENS Follow[] = { TOKEN_SEMICOLON,TOKEN_CURLY_BRACES_LEFT };
 	int length = 0;
 	
-
 	dec = dec_or_body();
 	fprintf(output, "Line %d : FUNC_PROTOTYPE -> RETURNED_TYPE\n", number_line);
 	
@@ -838,7 +859,6 @@ void parse_PARAM()
 		strcpy(tempParams.name, t->lexeme);
 		numPrams++;
 		insert_params();
-		//numPrams++;
 		fprintf(output, "Line %d : PARAM -> id\n", number_line);
 		fprintf(output, "Line %d : PARAM -> PARAM_TAG\n", number_line);
 		parse_PARAM_TAG();
@@ -907,7 +927,6 @@ void parse_PROG()
 	do {
 		fprintf(output, "Line %d : PROG -> FUNC_PROTOTYPE\n", number_line);
 		parse_FUNC_PROTOTYPE();
-		//size++;
 		t = next_token();
 		/* legally, the next token after FUNC_PROTOTYPE
 		   can be either semicolon or {
@@ -943,7 +962,6 @@ void parse_PROG()
 		t = back_token();
 	}
 }  /* end of parse_PROG  */
-
 void parse_GLOBAL_VARS()
 {
 	if (!func())
@@ -1385,7 +1403,7 @@ void matchBetweendecToDefs()
 					fprintf(outputsemant, "Line %d : Different type of the returned value between pre-definition (%s) to full definition (%s)\n", number_line, table[i].type, table[j].type);
 				
 				if (table[j].ParamSize != table[i].ParamSize)
-					fprintf(outputsemant, "Line %d : יש הבדל בין הפרמטרים %d %d\n", number_line, (table[i].ParamSize /*+ 1*/), (table[j].ParamSize /*+ 1*/));
+					fprintf(outputsemant, "Line %d : The number of parameters is different between pre-definition (%d) to full definition (%d)\n", number_line, (table[i].ParamSize /*+ 1*/), (table[j].ParamSize /*+ 1*/));
 				
 				for (int k = 0; k < table[j].ParamSize; k++)
 				{
@@ -1394,11 +1412,11 @@ void matchBetweendecToDefs()
 						for (int l = 0; l < table[j].param[k].sizelist; l++)
 						{
 							if (table[j].param[k].list[l]!= table[i].param[k].list[l])
-								fprintf(outputsemant, "Line %d :  Different size of arr in position %d between pre-definition (%d) to full definition (%d), %s \n", number_line, l, table[j].param[k].list[l], table[i].param[k].list[l], table[j].param[k].name);//לתקן את זה זה לא עד הסוף
+								fprintf(outputsemant, "Line %d :  Different size of arr in position %d between pre-definition (%d) to full definition (%d), %s \n", number_line, l, table[j].param[k].list[l], table[i].param[k].list[l], table[j].param[k].name);
 						}
 					}
 					if (table[j].param[k].sizelist != table[i].param[k].sizelist)
-						fprintf(outputsemant, "Line %d :  Different size of arr in position  %d between pre-definition (%d) to full definition (%d), %s \n", number_line, k, table[j].param[k].sizelist, table[i].param[k].sizelist, table[j].param[k].name);//לתקן את זה זה לא עד הסוף
+						fprintf(outputsemant, "Line %d :  Different size of arr in position  %d between pre-definition (%d) to full definition (%d), %s \n", number_line, k, table[j].param[k].sizelist, table[i].param[k].sizelist, table[j].param[k].name);
 					if (strcmp(table[j].param[k].type, table[i].param[k].type) != 0)
 						fprintf(outputsemant, "Line %d : Different type in prameter number %d , %s , %s\n", number_line, k, table[i].param[k].type, table[j].param[k].type);
 					if (strcmp(table[j].param[k].name, table[i].param[k].name) != 0)
@@ -1436,7 +1454,7 @@ void noUseVariable(int tempScope)
 	{
 		if (table[i].scope == tempScope && table[i].used == 0 && table[i].funcOrVar == 0)
 		{
-			fprintf(outputsemant, "\"%s\" no use in this declared variable in the \"%s\" \n", table[i].name, table[lastFunc].name);
+			fprintf(outputsemant, "\"%s\" no used in this declared variable in the \"%s\" \n", table[i].name, table[lastFunc].name);
 		}
 	}
 	if (tempScope == 1)
@@ -1445,7 +1463,7 @@ void noUseVariable(int tempScope)
 		{
 			if (table[lastFunc].param[i - 1].used == 0)
 			{
-				fprintf(outputsemant, "\"%s\" no use in this declared variable in the \"%s\" \n", table[lastFunc].param[i - 1].name, table[lastFunc].name);
+				fprintf(outputsemant, "\"%s\" no used in this declared variable in the \"%s\" \n", table[lastFunc].param[i - 1].name, table[lastFunc].name);
 			}
 		}
 
@@ -1455,7 +1473,7 @@ void DeleteAll()
 {
 	declarationOfFunctionWithoutImplementation();
 	noUseGlobalVariable();
-	for (int i = size; i >= 0; i--)
+	for (int i = size - 1; i >= 0; i--)
 	{
 			table[i].name = NULL;
 			table[i].type = NULL;
@@ -1467,6 +1485,28 @@ void DeleteAll()
 	}
 	size = 0;
 	tempScope = 0;
+	parse_var = 0;
+	lastFunc = 0;
+	numPrams = 0;
+	numberVar = 0;
+	numberVarOfFunc = 0;
+	legalNumberLeft = -1;
+	legalNumberRight = -1;
+	returnNumber = -1;
+	Number = 0;
+	dec = 0;
+	flagOfAllocationParam = 0;
+	idArr = 0;
+	numberOfcell = 0;
+	tempintNumber = -1;
+	flagPlus = 0;
+	flagMulti = 0;
+	lastArr = -1;
+	lastParamArr = -1;
+	callfunc = -1;
+	callSize = 0;
+	parse_call = 0;
+	typeLastVar = -1;
 }
 void noUseGlobalVariable()
 {
@@ -1494,9 +1534,15 @@ int isExistsVar(char *id ) // if id exists in parse_var
 			{
 				table[i].used = 1;
 				if (strcmp(table[i].type, "int") == 0)
+				{
+					typeLastVar = 1;
 					return 1; //int
+				}
 				else
+				{
+					typeLastVar = 0;
 					return 0; //float
+				}
 			}
 
 			if (i == lastFunc)
@@ -1507,9 +1553,15 @@ int isExistsVar(char *id ) // if id exists in parse_var
 						{
 							table[lastFunc].param[j].used = 1;
 							if (strcmp(table[lastFunc].param[j].type, "int") == 0)
-								return 1;
+							{
+								typeLastVar = 1;
+								return 1; //int
+							}
 							else
-								return 0;
+							{
+								typeLastVar = 0;
+								return 0; //float
+							}
 						}
 				}
 			}
@@ -1517,6 +1569,20 @@ int isExistsVar(char *id ) // if id exists in parse_var
 		fprintf(outputsemant, "Line %d : \"%s\" the type of the expression is undefined\n", number_line, id);
 	}
 	return -1;
+}
+void findcallfunc(char *id) // if id exists in parse_var
+{
+	if (size > 0)
+	{
+		for (int i = size - 1; i >= 0; i--)
+		{
+			if (strcmp(table[i].name, id) == 0)
+			{
+				callfunc = i;
+				break;
+			}
+		}
+	}
 }
 int isExistsfunc(char *id) // if exists func
 {
@@ -1533,12 +1599,12 @@ int isExistsfunc(char *id) // if exists func
 			}
 		}
 	}
+	return -1;
 }
 void isFuncVoid()
 {
 	if (strcmp(table[lastFunc].type, "void") == 0)
-		fprintf(outputsemant, "Line %d : \"%s\" פוקציה VOID אין פרמטר החזרה\n", number_line);
-
+		fprintf(outputsemant, "Line %d : \"%s\" 'void' function returning a value\n", number_line, table[lastFunc].name);
 }
 int funcParam()
 {
@@ -1547,6 +1613,7 @@ int funcParam()
 	
 	if (strcmp(table[lastFunc].type, "float") == 0)
 		return 0;//float
+	return -1;
 }
 int isIdarr()
 {
@@ -1595,12 +1662,12 @@ void checkArrayParam()
 		{
 			if (table[lastArr].list[numberOfcell] < tempintNumber)
 			{
-				fprintf(outputsemant, "Line %d :חריגה מגדול המעערך\n", number_line);
+				fprintf(outputsemant, "Exceeding the size of the array in line %d\n", number_line);
 			}
 		}
 		else
 		{
-			fprintf(outputsemant, "Line %d :גודל מערך לא תקין\n", number_line);
+			fprintf(outputsemant, "Improper array size in line %d\n", number_line);
 		}
 	}
 	else if (lastArr == lastFunc)
@@ -1609,12 +1676,12 @@ void checkArrayParam()
 		{
 			if (table[lastFunc].param[lastParamArr].list[numberOfcell] < tempintNumber)
 			{
-				fprintf(outputsemant, "Line %d :חריגה מגדול המעערך\n", number_line);
+				fprintf(outputsemant, "Exceeding the size of the array in line %d\n", number_line);
 			}
 		}
 		else
 		{
-			fprintf(outputsemant, "Line %d :גודל מערך לא תקין\n", number_line);
+			fprintf(outputsemant, "Improper array size in line %d\n", number_line);
 		}
 	}
 
@@ -1628,4 +1695,60 @@ void declarationOfFunctionWithoutImplementation()
 			fprintf(outputsemant, "The function \"%s\" declaration of function without implementation\n", table[i].name);
 		}
 	}
+}
+void arrcall()
+{
+	callarr = (int*)calloc(table[callfunc].ParamSize, sizeof(int));
+}
+void checkarrcall()
+{
+	if (callSize <= table[callfunc].ParamSize)
+	{
+		for (int i = 0; i < table[callfunc].ParamSize; i++)
+		{
+			if (callarr[i] == 0)
+			{
+				fprintf(outputsemant, "\"%s\" number of parameters does not match function declaration\n", table[callfunc].name);
+				break;
+			}
+		}
+	}
+}
+void matchBetweendecTocallNumber(char *id)
+{
+	if (callSize < table[callfunc].ParamSize)
+	{
+			if (strcmp(table[callfunc].param[callSize].type, id) == 0)
+				callarr[callSize] = 1;
+			else 
+			{
+				callarr[callSize] = 0;
+			}
+	}
+	else
+	{
+		fprintf(outputsemant, "\"%s\" number of parameters does not match function declaration\n", table[callfunc].name);
+	}
+	callSize++;
+}
+void matchBetweendecTocallid()
+{
+	if (callSize < table[callfunc].ParamSize)
+	{
+		if (strcmp(table[callfunc].param[callSize].type, "int") == 0 && typeLastVar ==1)
+			callarr[callSize] = 1;
+		else if (strcmp(table[callfunc].param[callSize].type, "float") == 0 && typeLastVar == 0)
+		{
+			callarr[callSize] = 1;
+		}
+		else
+		{
+			callarr[callSize] = 0;
+		}
+	}
+	else
+	{
+		fprintf(outputsemant, "\"%s\" number of parameters does not match function declaration\n", table[callfunc].name);
+	}
+	callSize++;
 }

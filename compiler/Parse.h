@@ -35,6 +35,11 @@ typedef struct Table
 extern int size;
 extern int tempScope;
 
+void matchBetweendecTocallid();
+void checkarrcall();
+void findcallfunc(char *id);
+void arrcall();
+void matchBetweendecTocallNumber(char *id);
 void noUseGlobalVariable();
 void noUseVariable(int tempScope);
 void declarationOfFunctionWithoutImplementation();

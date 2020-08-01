@@ -24,9 +24,6 @@
     <ClCompile Include="Parse.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Hash.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Token.h">

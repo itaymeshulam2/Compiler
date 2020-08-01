@@ -145,23 +145,25 @@ int main(int argc, char **argv)
 		if (i == 1)
 		{
 			yyout = fopen("C:\\temp\\test1_205613516_308207604_lex.txt", "w");
-			output = fopen("C:\\temp\\test1_205613516_308207604__syntactic.txt", "w");
+			output = fopen("C:\\temp\\test1_205613516_308207604_syntactic.txt", "w");
+			outputsemant = fopen("C:\\temp\\test1_205613516_308207604_semantic.txt", "w");
 		}
 		else if (i == 2)
 		{
 			yyout = fopen("C:\\temp\\test2_205613516_308207604_lex.txt", "w");
-			output = fopen("C:\\temp\\test2_205613516_308207604__syntactic.txt", "w");
+			output = fopen("C:\\temp\\test2_205613516_308207604_syntactic.txt", "w");
+			outputsemant = fopen("C:\\temp\\test2_205613516_308207604_semantic.txt", "w");
 		}
-
-		//while (yylex() != 0) {}
 
 		parse_PROG();
 		match(TOKEN_EOF);
 
 		yyrestart(yyin);
+		DeleteAll();
 		fclose(yyin);
 		fclose(yyout);
 		fclose(output);
+		fclose(outputsemant);
 		currentIndexTemp = 0;
 		flag = 0;
 		number_line = 1;

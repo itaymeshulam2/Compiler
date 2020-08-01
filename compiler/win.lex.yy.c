@@ -157,7 +157,7 @@ typedef size_t yy_size_t;
 
 extern int yyleng;
 
-extern FILE *yyin, *yyout, *output,*outputsemant;
+extern FILE *yyin, *yyout , *output , *outputsemant;
 
 #define EOB_ACT_CONTINUE_SCAN 0
 #define EOB_ACT_END_OF_FILE 1
@@ -328,7 +328,7 @@ void yyfree(void *);
 #define YY_SKIP_YYWRAP
 typedef flex_uint8_t YY_CHAR;
 
-FILE *yyin = NULL, *yyout = NULL, *output = NULL , *outputsemant = NULL;
+FILE *yyin = NULL, *yyout = NULL , *output = NULL, *outputsemant = NULL;
 
 typedef int yy_state_type;
 

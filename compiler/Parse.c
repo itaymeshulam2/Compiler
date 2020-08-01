@@ -1394,7 +1394,7 @@ void matchBetweendecToDefs()
 	{
 		for (int j = size - 1; i >= 0; i--)
 		{
-			if (strcmp(table[i].name, table[j].name) == 0)
+			if (strcmp(table[i].name, table[j].name) == 0 && table[i].funcOrVar == 1)
 			{
 				if (table[i].func == 0)
 					fprintf(outputsemant, "Line %d : ""%s"" Already declared\n", number_line, table[i].name);
@@ -1405,23 +1405,30 @@ void matchBetweendecToDefs()
 				if (table[j].ParamSize != table[i].ParamSize)
 					fprintf(outputsemant, "Line %d : The number of parameters is different between pre-definition (%d) to full definition (%d)\n", number_line, (table[i].ParamSize /*+ 1*/), (table[j].ParamSize /*+ 1*/));
 				
-				for (int k = 0; k < table[j].ParamSize; k++)
+				if (table[j].funcOrVar == 1)
 				{
-					if (table[j].param[k].sizelist == table[i].param[k].sizelist && table[j].param[k].sizelist > 0)
+					for (int k = 0; k < table[i].ParamSize; k++)
 					{
-						for (int l = 0; l < table[j].param[k].sizelist; l++)
+						if (table[j].param[k].sizelist == table[i].param[k].sizelist && table[j].param[k].sizelist > 0)
 						{
-							if (table[j].param[k].list[l]!= table[i].param[k].list[l])
-								fprintf(outputsemant, "Line %d :  Different size of arr in position %d between pre-definition (%d) to full definition (%d), %s \n", number_line, l, table[j].param[k].list[l], table[i].param[k].list[l], table[j].param[k].name);
+							for (int l = 0; l < table[j].param[k].sizelist; l++)
+							{
+								if (table[j].param[k].list[l] != table[i].param[k].list[l])
+									fprintf(outputsemant, "Line %d :  Different size of arr in position %d between pre-definition (%d) to full definition (%d), %s \n", number_line, l, table[j].param[k].list[l], table[i].param[k].list[l], table[j].param[k].name);
+							}
 						}
-					}
-					if (table[j].param[k].sizelist != table[i].param[k].sizelist)
-						fprintf(outputsemant, "Line %d :  Different size of arr in position  %d between pre-definition (%d) to full definition (%d), %s \n", number_line, k, table[j].param[k].sizelist, table[i].param[k].sizelist, table[j].param[k].name);
-					if (strcmp(table[j].param[k].type, table[i].param[k].type) != 0)
-						fprintf(outputsemant, "Line %d : Different type in prameter number %d , %s , %s\n", number_line, k, table[i].param[k].type, table[j].param[k].type);
-					if (strcmp(table[j].param[k].name, table[i].param[k].name) != 0)
-						fprintf(outputsemant, "Line %d : Different Name in parameter in position %d , %s , %s\n", number_line, k, table[i].param[k].name, table[j].param[k].name);
+						if (table[j].ParamSize < k && table[i].ParamSize < k)
+						{
+							if (table[j].param[k].sizelist != table[i].param[k].sizelist)
+								fprintf(outputsemant, "Line %d :  Different size of arr in position  %d between pre-definition (%d) to full definition (%d), %s \n", number_line, k, table[j].param[k].sizelist, table[i].param[k].sizelist, table[j].param[k].name);
+							if (strcmp(table[j].param[k].type, table[i].param[k].type) != 0)
+								fprintf(outputsemant, "Line %d : Different type in prameter number %d , %s , %s\n", number_line, k, table[i].param[k].type, table[j].param[k].type);
+							if (strcmp(table[j].param[k].name, table[i].param[k].name) != 0)
+								fprintf(outputsemant, "Line %d : Different Name in parameter in position %d , %s , %s\n", number_line, k, table[i].param[k].name, table[j].param[k].name);
+						}
+					
 
+					}
 				}
 				table[i].func = 0;
 			}

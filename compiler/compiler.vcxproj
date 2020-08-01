@@ -118,7 +118,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Hash.c" />
     <ClCompile Include="Parse.c" />
     <ClCompile Include="Token.c" />
     <ClCompile Include="win.lex.yy.c" />
